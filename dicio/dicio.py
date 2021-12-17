@@ -23,12 +23,13 @@ TAG_PHRASE_DELIMITER = ('<div class="frase"', '</div>')
 
 class Word(object):
 
-    def __init__(self, word, meaning=None, etymology=None, synonyms=[], examples=[], extra={}):
+    def __init__(self, word, meaning=None, etymology=None, synonyms=[], antonyms=[], examples=[], extra={}):
         self.word = word.strip().lower()
         self.url = BASE_URL.format(Utils.remove_accents(self.word))
         self.meaning = meaning
         self.etymology = etymology
         self.synonyms = synonyms
+        self.antonyms = antonyms
         self.extra = extra
         self.examples = examples
 
@@ -43,6 +44,7 @@ class Word(object):
             self.meaning = found.meaning
             self.etymology = found.etymology
             self.synonyms = found.synonyms
+            self.antonyms = found.antonyms
             self.extra = found.extra
             self.examples = found.examples
 
@@ -78,12 +80,13 @@ class Dicio(object):
             return None
 
         meaning, etymology = self.scrape_meaning(page)
-
+        synonyms, antonyms = self.scrape_synonyms(page)
         return Word(
             Utils.text_between(page, "<h1", "</h1>",  force_html=True).lower(),
             meaning=meaning,
             etymology=etymology,
-            synonyms=self.scrape_synonyms(page),
+            synonyms=synonyms,
+            antonyms=antonyms,
             examples=self.scrape_examples(page),
             extra=self.scrape_extra(page),
         )
@@ -109,12 +112,22 @@ class Dicio(object):
         Return list of synonyms.
         """
         synonyms = []
-        if page.find(TAG_SYNONYMS[0]) > -1:
+        antonyms = []
+        first_synonyms_position = page.find(TAG_SYNONYMS[0])
+        if first_synonyms_position > -1:
             html = Utils.text_between(page, *TAG_SYNONYMS, force_html=True)
             while html.find(TAG_SYNONYMS_DELIMITER[0]) > -1:
                 synonym, html = self.first_synonym(html)
                 synonyms.append(synonym)
-        return synonyms
+            second_synonyms_position = \
+                page[first_synonyms_position+1:].find(TAG_SYNONYMS[0])
+            if second_synonyms_position > -1:
+                html = Utils.text_between(page, *TAG_SYNONYMS,
+                                          force_html=True, second=True)
+                while html.find(TAG_SYNONYMS_DELIMITER[0]) > -1:
+                    antonym, html = self.first_synonym(html)
+                    antonyms.append(antonym)
+        return synonyms, antonyms
 
     def first_synonym(self, html):
         """

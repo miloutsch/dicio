@@ -39,7 +39,7 @@ class Utils(object):
         return text
 
     @staticmethod
-    def text_between(text, before, after, force_html=False):
+    def text_between(text, before, after, force_html=False, second=False):
         """
         Return text between before and after.
         Use force_html when before and after were html tags.
@@ -47,7 +47,13 @@ class Utils(object):
         >>> text_between("<a href='#'>Something</a>", "<a href='#'>", "</a>")
         'Something'
         """
-        start = text.find(before)
+        if not second:
+            start = text.find(before)
+        else:
+            first = text.find(before)
+            second = text[first + 1:].find(before)
+            start = first + second
+
         if start > -1:
             start += len(before)
         if force_html:
